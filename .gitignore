@@ -1,0 +1,39 @@
+# Environment variables (NEVER commit API keys!)
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Logs (optional - you may want to keep these out of git)
+logs/
+*.log
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backtest outputs
+*.html
+backtest_results/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
