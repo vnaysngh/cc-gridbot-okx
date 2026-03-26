@@ -41,6 +41,13 @@ def get_exchange(exchange_id: str, authenticated: bool = False) -> ccxt.Exchange
             },
         }
         keys = key_map.get(exchange_id, {})
+
+        # Debug: Log what we're actually getting from environment
+        logger.debug(f"Loading keys for {exchange_id}:")
+        logger.debug(f"  OKX_API_KEY: {'SET' if os.getenv('OKX_API_KEY') else 'MISSING'}")
+        logger.debug(f"  OKX_API_SECRET: {'SET' if os.getenv('OKX_API_SECRET') else 'MISSING'}")
+        logger.debug(f"  OKX_API_PASSPHRASE: {'SET' if os.getenv('OKX_API_PASSPHRASE') else 'MISSING'}")
+
         if not any(keys.values()):
             raise ValueError(f"No API keys found for {exchange_id}. Check your .env file.")
         config.update({k: v for k, v in keys.items() if v})
