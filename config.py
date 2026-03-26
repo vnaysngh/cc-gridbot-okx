@@ -61,7 +61,7 @@ POLL_INTERVAL_SECONDS = 60
 GRID_LOWER_PRICE = 0.1331       # 5.0% below $0.1401 — updated 2026-03-27
 GRID_UPPER_PRICE = 0.1471       # 5.0% above $0.1401 — updated 2026-03-27
 GRID_NUM_LEVELS  = 10           # 10 levels = ~5 buys + ~5 sells
-GRID_ORDER_USDT  = 1.0          # $1 per order (reduced to fit $5.70 USDT + 242 CC balance)
+GRID_ORDER_USDT  = 8.0          # $8 per order (uses $40 USDT + $40 worth CC, leaves ~$6 buffer)
 
 GRID_START_MODE = "full"        # "full" = place both buys AND sells at startup
                                 # Requires USDT for buys + CC for sells
