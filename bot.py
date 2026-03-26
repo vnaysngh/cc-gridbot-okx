@@ -4,6 +4,7 @@
 import time
 import signal
 import sys
+import json
 from datetime import datetime
 
 from rich.console import Console
@@ -21,6 +22,41 @@ console = Console()
 logger = setup_logger("bot")
 
 running = True
+start_time = datetime.now()
+recent_orders = []  # Track last 50 orders
+STATE_FILE = "bot_state.json"
+
+
+def write_bot_state(status, message, strategy, price):
+    """Write current bot state to JSON file for dashboard."""
+    try:
+        summary = strategy.status_summary(price) if strategy else {}
+        uptime = (datetime.now() - start_time).total_seconds() / 3600
+
+        state = {
+            "status": status,
+            "message": message,
+            "timestamp": datetime.now().isoformat(),
+            "current_price": price,
+            "grid_lower": summary.get("lower", 0),
+            "grid_upper": summary.get("upper", 0),
+            "in_range": summary.get("in_range", False),
+            "active_buys": summary.get("active_buys", 0),
+            "active_sells": summary.get("active_sells", 0),
+            "completed_cycles": summary.get("completed_cycles", 0),
+            "total_profit_usdt": summary.get("total_profit_usdt", 0),
+            "unrealized_usdt": summary.get("unrealized_usdt", 0),
+            "uptime_hours": round(uptime, 2),
+            "recent_orders": recent_orders[-50:],  # Last 50 orders
+            "exchange": config.EXCHANGE_ID,
+            "symbol": config.SYMBOL,
+            "paper_trading": config.PAPER_TRADING,
+        }
+
+        with open(STATE_FILE, 'w') as f:
+            json.dump(state, f, indent=2)
+    except Exception as e:
+        logger.error(f"Failed to write bot state: {e}")
 
 def handle_signal(sig, frame):
     global running
@@ -89,7 +125,7 @@ def run_grid_bot(exchange, strategy: GridStrategy):
 
     logger.info(f"Placing {len(initial_orders)} initial orders...")
     for order in initial_orders:
-        place_order(
+        result = place_order(
             exchange=exchange,
             symbol=config.SYMBOL,
             side=order.side,
@@ -98,6 +134,14 @@ def run_grid_bot(exchange, strategy: GridStrategy):
             price=order.price,
             paper=config.PAPER_TRADING,
         )
+        # Track order for dashboard
+        recent_orders.append({
+            "timestamp": datetime.now().isoformat(),
+            "side": order.side,
+            "price": order.price,
+            "usdt": order.usdt,
+            "status": "placed"
+        })
 
     while running:
         try:
@@ -125,8 +169,17 @@ def run_grid_bot(exchange, strategy: GridStrategy):
                         price=act["price"],
                         paper=config.PAPER_TRADING,
                     )
+                    # Track order for dashboard
+                    recent_orders.append({
+                        "timestamp": datetime.now().isoformat(),
+                        "side": act["side"],
+                        "price": act["price"],
+                        "usdt": act["usdt"],
+                        "status": "filled"
+                    })
 
             print_grid_status(strategy, price)
+            write_bot_state("running", f"Grid bot active | Price: ${price:.4f}", strategy, price)
             console.print(
                 f"[dim]Next check in {config.POLL_INTERVAL_SECONDS}s | "
                 f"{datetime.now().strftime('%H:%M:%S')}[/dim]"
