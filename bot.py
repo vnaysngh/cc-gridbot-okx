@@ -17,7 +17,7 @@ from utils.exchange import (
     sync_grid_with_exchange
 )
 from utils.logger import setup_logger
-from utils.state_manager import save_grid_state, load_grid_state
+from utils.state_manager import save_grid_state, load_grid_state, save_dashboard_state
 from strategies.dca import DCAStrategy
 from strategies.grid import GridStrategy
 
@@ -25,6 +25,42 @@ console = Console()
 logger = setup_logger("bot")
 
 running = True
+bot_start_time = datetime.now()
+
+def update_dashboard(strategy_type, summary, status="running", message="Status updated"):
+    """Helper to write state to the dashboard."""
+    uptime_sec = (datetime.now() - bot_start_time).total_seconds()
+    
+    dash_state = {
+        "status": status,
+        "message": message,
+        "timestamp": datetime.now().isoformat(),
+        "uptime_hours": round(uptime_sec / 3600, 2),
+    }
+
+    if strategy_type == "grid":
+        dash_state.update({
+            "total_profit_usdt": summary.get("total_profit_usdt", 0.0),
+            "unrealized_usdt": summary.get("unrealized_usdt", 0.0),
+            "completed_cycles": summary.get("completed_cycles", 0),
+            # Mocking active/completed orders arrays to fit simple dashboard needs
+            "active_orders": [
+                {"side": "buy", "price": summary.get("lower", 0), "amount": "active", "timestamp": datetime.now().isoformat()} 
+                if summary.get("active_buys", 0) > 0 else {}
+            ],
+            "completed_orders": [],
+        })
+    elif strategy_type == "dca":
+        dash_state.update({
+            "total_profit_usdt": summary.get("profit_pct", 0), # using % for simplicity
+            "unrealized_usdt": 0.0,
+            "completed_cycles": summary.get("safety_orders_used", 0),
+            "active_orders": [],
+            "completed_orders": [],
+        })
+    
+    save_dashboard_state(dash_state)
+
 
 def handle_signal(sig, frame):
     global running
@@ -143,6 +179,7 @@ def run_grid_bot(exchange, strategy: GridStrategy):
 
     # Save state after initialization
     save_grid_state(strategy.to_dict(), config.EXCHANGE_ID, config.SYMBOL)
+    update_dashboard("grid", strategy.status_summary(price), status="running", message="Grid initialized")
 
     while running:
         try:
@@ -232,6 +269,7 @@ def run_grid_bot(exchange, strategy: GridStrategy):
 
             # Save state after each cycle
             save_grid_state(strategy.to_dict(), config.EXCHANGE_ID, config.SYMBOL)
+            update_dashboard("grid", strategy.status_summary(price), status="running", message=f"Checking price: ${price:.4f}")
 
             print_grid_status(strategy, price)
             console.print(
@@ -242,6 +280,7 @@ def run_grid_bot(exchange, strategy: GridStrategy):
 
         except Exception as e:
             logger.error(f"Error in Grid loop: {e}")
+            update_dashboard("grid", {}, status="error", message=str(e))
             time.sleep(config.POLL_INTERVAL_SECONDS)
 
 
@@ -261,6 +300,7 @@ def run_dca_bot(exchange, strategy: DCAStrategy):
                     paper=config.PAPER_TRADING,
                 )
 
+            update_dashboard("dca", strategy.status_summary(price), status="running", message=f"Checking price: ${price:.4f}")
             print_dca_status(strategy, price)
             console.print(
                 f"[dim]Next check in {config.POLL_INTERVAL_SECONDS}s | "

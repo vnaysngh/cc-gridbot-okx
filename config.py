@@ -1,5 +1,6 @@
 # config.py — All your settings live here.
 # Edit this file to tune your strategy. You should NOT need to touch any other file.
+import os
 
 # ─────────────────────────────────────────────
 # EXCHANGE SETTINGS
@@ -13,7 +14,8 @@ TIMEFRAME = "1h"
 # GENERAL BOT SETTINGS
 # ─────────────────────────────────────────────
 
-PAPER_TRADING = False           # True = simulate only, no real orders placed
+PAPER_TRADING = os.environ.get("PAPER_TRADING", "True").lower() == "true"
+                                # True = simulate only, no real orders placed
                                 # Set to False only when ready to go live
 
 BOT_MODE = "grid"

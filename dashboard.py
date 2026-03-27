@@ -9,7 +9,8 @@ import os
 app = Flask(__name__)
 
 # Path to shared state file (bot writes, dashboard reads)
-STATE_FILE = "bot_state.json"
+# Use the data directory so it can be mounted as a persistent volume in Railway
+STATE_FILE = os.path.join(os.path.dirname(__file__), "data", "bot_state.json")
 
 
 def read_bot_state():

@@ -18,6 +18,21 @@ STATE_DIR = Path(__file__).parent.parent / "data" / "state"
 def ensure_state_dir():
     """Create state directory if it doesn't exist."""
     STATE_DIR.mkdir(parents=True, exist_ok=True)
+    (STATE_DIR.parent).mkdir(parents=True, exist_ok=True)
+
+
+def save_dashboard_state(state_dict: dict):
+    """Save a simplified state dict for the web dashboard."""
+    filepath = STATE_DIR.parent / "bot_state.json"
+    try:
+        ensure_state_dir()
+        # Write to temp file first, then replace to avoid corruption
+        temp_file = filepath.with_suffix('.tmp')
+        with temp_file.open('w') as f:
+            json.dump(state_dict, f, indent=4)
+        temp_file.replace(filepath)
+    except Exception as e:
+        logger.error(f"Failed to save dashboard state: {e}")
 
 
 def save_grid_state(state: dict, exchange_id: str, symbol: str):
