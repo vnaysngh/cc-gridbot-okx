@@ -116,6 +116,31 @@ def run_grid_bot(exchange, strategy: GridStrategy):
         if not config.PAPER_TRADING:
             sync_grid_with_exchange(exchange, config.SYMBOL, strategy)
 
+        # If sync wiped all active orders (e.g. stale state from old grid),
+        # reset and reinitialize a fresh grid
+        active = [o for o in strategy.state.orders if not o.filled]
+        if not active:
+            logger.info("No active orders after sync — reinitializing fresh grid")
+            strategy.state.initialized = False
+            strategy.state.orders = []
+            initial_orders = strategy.initialize_orders(price)
+            logger.info(f"Placing {len(initial_orders)} initial orders...")
+            for order in initial_orders:
+                try:
+                    order_response = place_order(
+                        exchange=exchange,
+                        symbol=config.SYMBOL,
+                        side=order.side,
+                        amount_usdt=order.usdt,
+                        order_type="limit",
+                        price=order.price,
+                        paper=config.PAPER_TRADING,
+                    )
+                    if order_response and order_response.get("id"):
+                        order.order_id = order_response["id"]
+                except Exception as e:
+                    logger.error(f"Failed to place initial {order.side} order at ${order.price:.4f}: {e}")
+
     # Save state after initialization
     save_grid_state(strategy.to_dict(), config.EXCHANGE_ID, config.SYMBOL)
 
