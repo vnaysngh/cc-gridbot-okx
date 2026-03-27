@@ -41,13 +41,6 @@ def get_exchange(exchange_id: str, authenticated: bool = False) -> ccxt.Exchange
             },
         }
         keys = key_map.get(exchange_id, {})
-
-        # Debug: Log what we're actually getting from environment
-        logger.debug(f"Loading keys for {exchange_id}:")
-        logger.debug(f"  OKX_API_KEY: {'SET' if os.getenv('OKX_API_KEY') else 'MISSING'}")
-        logger.debug(f"  OKX_API_SECRET: {'SET' if os.getenv('OKX_API_SECRET') else 'MISSING'}")
-        logger.debug(f"  OKX_API_PASSPHRASE: {'SET' if os.getenv('OKX_API_PASSPHRASE') else 'MISSING'}")
-
         if not any(keys.values()):
             raise ValueError(f"No API keys found for {exchange_id}. Check your .env file.")
         config.update({k: v for k, v in keys.items() if v})
@@ -148,6 +141,15 @@ def get_current_price(exchange: ccxt.Exchange, symbol: str) -> float:
     return float(ticker["last"])
 
 
+def load_markets_once(exchange: ccxt.Exchange):
+    if not exchange.markets:
+        try:
+            exchange.load_markets()
+            logger.debug(f"Loaded markets for {exchange.id}")
+        except Exception as e:
+            logger.error(f"Failed to load markets for {exchange.id}: {e}")
+
+
 def get_balance(exchange: ccxt.Exchange, currency: str = "USDT") -> float:
     balance = exchange.fetch_balance()
     return float(balance["free"].get(currency, 0))
@@ -162,8 +164,24 @@ def place_order(
     price: float = None,
     paper: bool = True,
 ) -> dict:
+    load_markets_once(exchange)
+    
     price_now = get_current_price(exchange, symbol)
-    amount_cc = amount_usdt / (price if price else price_now)
+    order_price = price if price else price_now
+    amount_cc = amount_usdt / order_price
+    
+    # Format to exchange precision requirements
+    formatted_amount = amount_cc
+    formatted_price = order_price
+    
+    if exchange.markets and symbol in exchange.markets:
+        try:
+            formatted_amount_str = exchange.amount_to_precision(symbol, amount_cc)
+            formatted_amount = float(formatted_amount_str)
+            formatted_price_str = exchange.price_to_precision(symbol, order_price)
+            formatted_price = float(formatted_price_str)
+        except Exception as e:
+            logger.warning(f"Failed to convert precision for {symbol}: {e}")
 
     if paper:
         fake_order = {
@@ -171,29 +189,29 @@ def place_order(
             "symbol": symbol,
             "side": side,
             "type": order_type,
-            "amount": amount_cc,
-            "price": price if price else price_now,
-            "cost": amount_usdt,
+            "amount": formatted_amount,
+            "price": formatted_price,
+            "cost": formatted_amount * formatted_price,
             "status": "closed",
             "paper": True,
         }
         logger.info(
-            f"[PAPER] {side.upper()} {amount_cc:.4f} CC @ "
-            f"${price if price else price_now:.4f} (${amount_usdt:.2f} USDT)"
+            f"[PAPER] {side.upper()} {formatted_amount} CC @ "
+            f"${formatted_price} (${formatted_amount * formatted_price:.2f} USDT)"
         )
         return fake_order
 
     try:
         if order_type == "market":
-            order = exchange.create_market_order(symbol, side, amount_cc)
+            order = exchange.create_market_order(symbol, side, formatted_amount)
         elif order_type == "limit" and price:
-            order = exchange.create_limit_order(symbol, side, amount_cc, price)
+            order = exchange.create_limit_order(symbol, side, formatted_amount, formatted_price)
         else:
             raise ValueError(f"Unknown order_type: {order_type}")
 
         logger.info(
-            f"[LIVE] {side.upper()} {amount_cc:.4f} CC @ "
-            f"${price if price else price_now:.4f} | order_id={order['id']}"
+            f"[LIVE] {side.upper()} {formatted_amount} CC @ "
+            f"${formatted_price} | order_id={order['id']}"
         )
         return order
     except ccxt.InsufficientFunds as e:
@@ -205,3 +223,150 @@ def place_order(
     except Exception as e:
         logger.error(f"Order error: {e}")
         raise
+
+
+def cancel_order(
+    exchange,
+    symbol: str,
+    order_id: str,
+    paper: bool = True,
+) -> bool:
+    if paper:
+        logger.info(f"[PAPER] CANCEL order {order_id}")
+        return True
+    try:
+        exchange.cancel_order(order_id, symbol)
+        logger.info(f"[LIVE] Cancelled order {order_id}")
+        return True
+    except Exception as e:
+        logger.warning(f"Could not cancel order {order_id}: {e}")
+        return False
+
+
+def fetch_open_orders(exchange: ccxt.Exchange, symbol: str) -> list:
+    """
+    Fetch all open orders for a symbol from the exchange.
+
+    Returns list of order dicts with keys: id, side, price, amount, status
+    """
+    try:
+        orders = exchange.fetch_open_orders(symbol)
+        logger.debug(f"Fetched {len(orders)} open orders for {symbol}")
+        return orders
+    except Exception as e:
+        logger.error(f"Failed to fetch open orders: {e}")
+        return []
+
+
+def check_order_status(exchange: ccxt.Exchange, symbol: str, order_id: str) -> dict:
+    """
+    Check the status of a specific order.
+
+    Returns dict with keys: status, filled, remaining, price
+    Returns None if order not found or error occurs.
+    """
+    try:
+        order = exchange.fetch_order(order_id, symbol)
+        return {
+            "status": order.get("status"),
+            "filled": float(order.get("filled", 0)),
+            "remaining": float(order.get("remaining", 0)),
+            "price": float(order.get("price", 0)),
+            "amount": float(order.get("amount", 0)),
+        }
+    except Exception as e:
+        logger.warning(f"Failed to fetch order {order_id}: {e}")
+        return None
+
+
+def sync_grid_with_exchange(exchange: ccxt.Exchange, symbol: str, grid_strategy) -> int:
+    """
+    Sync grid strategy state with actual exchange orders.
+
+    - Fetches open orders from exchange
+    - Matches them with internal grid orders by price
+    - Updates order_id for matched orders
+    - Checks for partial fills
+    - Marks unmatched internal orders as filled (likely executed while bot was offline)
+
+    Returns number of orders synced.
+    """
+    if not grid_strategy.state.initialized:
+        logger.debug("Grid not initialized yet, skipping sync")
+        return 0
+
+    try:
+        exchange_orders = fetch_open_orders(exchange, symbol)
+
+        # Build map of exchange orders by (side, price) and by order_id
+        exchange_map_by_price = {}
+        exchange_map_by_id = {}
+
+        for eo in exchange_orders:
+            key = (eo['side'], round(float(eo['price']), 6))
+            exchange_map_by_price[key] = eo
+            exchange_map_by_id[eo['id']] = eo
+
+        synced_count = 0
+        filled_count = 0
+        partial_fill_count = 0
+
+        # Match internal orders with exchange orders
+        for order in grid_strategy.state.orders:
+            if order.filled:
+                continue
+
+            # Try matching by order_id first (most reliable)
+            if order.order_id and order.order_id in exchange_map_by_id:
+                eo = exchange_map_by_id[order.order_id]
+
+                # Check for partial fills
+                last_amount_filled = order.amount_filled
+                order.amount_filled = float(eo.get('filled', 0))
+                filled_pct = float(eo.get('filled', 0)) / float(eo.get('amount', 1))
+                if 0 < filled_pct < 1.0:
+                    partial_fill_count += 1
+                    if order.amount_filled > last_amount_filled:
+                        logger.warning(
+                            f"Partial fill detected/updated: {order.side} @ ${order.price:.4f} "
+                            f"({filled_pct:.1%} filled) - treating as open"
+                        )
+
+                synced_count += 1
+                continue
+
+            # Fallback to matching by price
+            key = (order.side, round(order.price, 6))
+
+            if key in exchange_map_by_price:
+                # Order exists on exchange - update ID
+                eo = exchange_map_by_price[key]
+                order.order_id = eo['id']
+                synced_count += 1
+                logger.debug(f"Synced {order.side} @ ${order.price:.4f} -> {eo['id']}")
+
+                # Check for partial fills
+                order.amount_filled = float(eo.get('filled', 0))
+                filled_pct = float(eo.get('filled', 0)) / float(eo.get('amount', 1))
+                if 0 < filled_pct < 1.0:
+                    partial_fill_count += 1
+                    logger.warning(
+                        f"Partial fill detected: {order.side} @ ${order.price:.4f} "
+                        f"({filled_pct:.1%} filled) - treating as open"
+                    )
+            else:
+                # Order doesn't exist on exchange - likely filled while offline
+                order.filled = True
+                filled_count += 1
+                logger.info(f"Marked {order.side} @ ${order.price:.4f} as filled (not on exchange)")
+
+        logger.info(
+            f"Exchange sync complete: {synced_count} orders synced, "
+            f"{filled_count} marked as filled, {partial_fill_count} partial fills, "
+            f"{len(exchange_orders)} on exchange"
+        )
+        return synced_count
+
+    except Exception as e:
+        logger.error(f"Failed to sync with exchange: {e}")
+        return 0

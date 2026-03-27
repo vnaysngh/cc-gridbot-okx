@@ -1,0 +1,143 @@
+{
+  "initial_lower": 0.14,
+  "initial_upper": 0.153,
+  "lower_price": 0.14,
+  "upper_price": 0.153,
+  "num_levels": 10,
+  "order_usdt": 25.0,
+  "start_mode": "full",
+  "rebalance_threshold": 0.75,
+  "spacing_type": "linear",
+  "range_ratio": 0.09285714285714274,
+  "grid_spacing": 0.0014444444444444426,
+  "levels": [
+    0.14,
+    0.14144444444444446,
+    0.1428888888888889,
+    0.14433333333333334,
+    0.14577777777777778,
+    0.14722222222222223,
+    0.14866666666666667,
+    0.1501111111111111,
+    0.15155555555555555,
+    0.153
+  ],
+  "state": {
+    "orders": [
+      {
+        "level": 0,
+        "side": "buy",
+        "price": 0.14,
+        "usdt": 25.0,
+        "filled": false,
+        "is_initial_sell": false,
+        "order_id": "PAPER_BUY_1774571403",
+        "amount_filled": 0.0
+      },
+      {
+        "level": 1,
+        "side": "buy",
+        "price": 0.14144444444444446,
+        "usdt": 25.0,
+        "filled": false,
+        "is_initial_sell": false,
+        "order_id": "PAPER_BUY_1774571404",
+        "amount_filled": 0.0
+      },
+      {
+        "level": 2,
+        "side": "buy",
+        "price": 0.1428888888888889,
+        "usdt": 25.0,
+        "filled": false,
+        "is_initial_sell": false,
+        "order_id": "PAPER_BUY_1774571404",
+        "amount_filled": 0.0
+      },
+      {
+        "level": 3,
+        "side": "buy",
+        "price": 0.14433333333333334,
+        "usdt": 25.0,
+        "filled": false,
+        "is_initial_sell": false,
+        "order_id": "PAPER_BUY_1774571405",
+        "amount_filled": 0.0
+      },
+      {
+        "level": 4,
+        "side": "buy",
+        "price": 0.14577777777777778,
+        "usdt": 25.0,
+        "filled": false,
+        "is_initial_sell": false,
+        "order_id": "PAPER_BUY_1774571406",
+        "amount_filled": 0.0
+      },
+      {
+        "level": 5,
+        "side": "sell",
+        "price": 0.14722222222222223,
+        "usdt": 25.0,
+        "filled": true,
+        "is_initial_sell": true,
+        "order_id": "PAPER_SELL_1774571406",
+        "amount_filled": 0.0
+      },
+      {
+        "level": 6,
+        "side": "sell",
+        "price": 0.14866666666666667,
+        "usdt": 25.0,
+        "filled": false,
+        "is_initial_sell": true,
+        "order_id": "PAPER_SELL_1774571407",
+        "amount_filled": 0.0
+      },
+      {
+        "level": 7,
+        "side": "sell",
+        "price": 0.1501111111111111,
+        "usdt": 25.0,
+        "filled": false,
+        "is_initial_sell": true,
+        "order_id": "PAPER_SELL_1774571407",
+        "amount_filled": 0.0
+      },
+      {
+        "level": 8,
+        "side": "sell",
+        "price": 0.15155555555555555,
+        "usdt": 25.0,
+        "filled": false,
+        "is_initial_sell": true,
+        "order_id": "PAPER_SELL_1774571408",
+        "amount_filled": 0.0
+      },
+      {
+        "level": 9,
+        "side": "sell",
+        "price": 0.153,
+        "usdt": 25.0,
+        "filled": false,
+        "is_initial_sell": true,
+        "order_id": "PAPER_SELL_1774571408",
+        "amount_filled": 0.0
+      },
+      {
+        "level": 4,
+        "side": "buy",
+        "price": 0.14577777777777778,
+        "usdt": 25.0,
+        "filled": false,
+        "is_initial_sell": false,
+        "order_id": "PAPER_BUY_1774573472",
+        "amount_filled": 0.0
+      }
+    ],
+    "completed_cycles": 1,
+    "total_profit_usdt": 0.24771341463414603,
+    "initialized": true,
+    "rebalance_count": 0
+  }
+}

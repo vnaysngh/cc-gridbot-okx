@@ -42,8 +42,8 @@ class DCABacktest(Strategy):
     safety_drop_pct   = config.DCA_SAFETY_DROP_PCT
     take_profit_pct   = config.DCA_TAKE_PROFIT_PCT
     max_safety_orders = config.DCA_MAX_SAFETY_ORDERS
-    base_order_pct    = 0.10   # fraction of equity per base order
-    safety_order_pct  = 0.06   # fraction of equity per safety order
+    base_order_usdt   = config.DCA_BASE_ORDER_USDT
+    safety_order_usdt = config.DCA_SAFETY_ORDER_USDT
 
     def init(self):
         self.last_buy_price = None
@@ -58,8 +58,9 @@ class DCABacktest(Strategy):
 
         if not self.in_position:
             # Open new cycle with base order
-            size = (self.equity * self.base_order_pct) / price
-            if size > 0:
+            size = self.base_order_usdt / price
+            cost = size * price
+            if size > 0 and self.equity >= cost:
                 self.buy(size=size)
                 self.last_buy_price = price
                 self.safety_count = 0
@@ -85,8 +86,9 @@ class DCABacktest(Strategy):
         if (self.last_buy_price and
                 self.safety_count < self.max_safety_orders and
                 price <= self.last_buy_price * (1 - self.safety_drop_pct / 100)):
-            size = (self.equity * self.safety_order_pct) / price
-            if size > 0 and self.equity > size * price:
+            size = self.safety_order_usdt / price
+            cost = size * price
+            if size > 0 and self.equity >= cost:
                 self.buy(size=size)
                 self.last_buy_price = price
                 self.safety_count += 1
