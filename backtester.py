@@ -390,9 +390,9 @@ def print_best_settings(dca_results: list, grid_results: list):
     if grid_results:
         best = max(grid_results, key=lambda x: x["return_pct"])
         console.print("[bold cyan]Grid Strategy:[/bold cyan]")
-        console.print(f"  GRID_LOWER_PRICE       = {best['lower_price']}  "
+        console.print(f"  GRID_LOWER_RANGE_PCT   = {round((1 - best['lower_mult']) * 100, 2)}  "
                       f"[dim](= {best['lower_mult']:.2f}x of entry price)[/dim]")
-        console.print(f"  GRID_UPPER_PRICE       = {best['upper_price']}  "
+        console.print(f"  GRID_UPPER_RANGE_PCT   = {round((best['upper_mult'] - 1) * 100, 2)}  "
                       f"[dim](= {best['upper_mult']:.2f}x of entry price)[/dim]")
         console.print(f"  GRID_NUM_LEVELS        = {best['num_levels']}")
         console.print(f"  → Backtest return: [green]{best['return_pct']:+.2f}%[/green] | "

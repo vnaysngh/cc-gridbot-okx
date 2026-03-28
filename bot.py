@@ -330,9 +330,14 @@ def main():
             strategy = GridStrategy.from_dict(saved_state)
         else:
             console.print("[yellow]Starting fresh grid...[/yellow]")
+            price = get_current_price(exchange, config.SYMBOL)
+            lower_price = price * (1 - config.GRID_LOWER_RANGE_PCT / 100)
+            upper_price = price * (1 + config.GRID_UPPER_RANGE_PCT / 100)
+            console.print(f"[dim]Current price: ${price:.4f} | Dynamic range: ${lower_price:.4f} – ${upper_price:.4f}[/dim]")
+
             strategy = GridStrategy(
-                lower_price=config.GRID_LOWER_PRICE,
-                upper_price=config.GRID_UPPER_PRICE,
+                lower_price=lower_price,
+                upper_price=upper_price,
                 num_levels=config.GRID_NUM_LEVELS,
                 order_usdt=config.GRID_ORDER_USDT,
                 start_mode=config.GRID_START_MODE,

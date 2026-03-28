@@ -42,8 +42,8 @@ POLL_INTERVAL_SECONDS = 60
 #   3. Set PAPER_TRADING = False
 #   4. Run: python3 bot.py
 
-GRID_LOWER_PRICE = 0.1360       # ~4.5% below current price (updated 2026-03-27)
-GRID_UPPER_PRICE = 0.1488       # ~4.5% above current price (updated 2026-03-27)
+GRID_LOWER_RANGE_PCT = 4.5      # % below current price to place lowest grid buy
+GRID_UPPER_RANGE_PCT = 4.5      # % above current price to place highest grid sell
 GRID_NUM_LEVELS  = 10           # 10 levels = ~4 buys + ~4 sells
 GRID_ORDER_USDT  = 25.0         # $25 per order (~$100 each side)
 GRID_SPACING_TYPE = "linear"    # "linear" or "geometric" (constant profit % per grid step)

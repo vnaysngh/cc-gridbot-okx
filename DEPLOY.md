@@ -144,7 +144,7 @@ When you need to update the grid range:
 python3 -c 'from utils.exchange import get_exchange, get_current_price; exchange = get_exchange("okx", authenticated=False); price = get_current_price(exchange, "CC/USDT"); print(f"Current: ${price:.4f} | Lower (-5%): ${price*0.95:.4f} | Upper (+5%): ${price*1.05:.4f}")'
 
 # Edit config.py with new values
-# Update GRID_LOWER_PRICE and GRID_UPPER_PRICE
+# Update GRID_LOWER_RANGE_PCT and GRID_UPPER_RANGE_PCT
 # Update "Last updated" date
 ```
 

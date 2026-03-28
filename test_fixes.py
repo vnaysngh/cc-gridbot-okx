@@ -183,8 +183,8 @@ def test_config_structure():
     checks = [
         ("GRID_REBALANCE_THRESHOLD exists", hasattr(config, "GRID_REBALANCE_THRESHOLD")),
         ("GRID_START_MODE exists", hasattr(config, "GRID_START_MODE")),
-        ("GRID_LOWER_PRICE exists", hasattr(config, "GRID_LOWER_PRICE")),
-        ("GRID_UPPER_PRICE exists", hasattr(config, "GRID_UPPER_PRICE")),
+        ("GRID_LOWER_RANGE_PCT exists", hasattr(config, "GRID_LOWER_RANGE_PCT")),
+        ("GRID_UPPER_RANGE_PCT exists", hasattr(config, "GRID_UPPER_RANGE_PCT")),
         ("GRID_NUM_LEVELS exists", hasattr(config, "GRID_NUM_LEVELS")),
         ("GRID_ORDER_USDT exists", hasattr(config, "GRID_ORDER_USDT")),
         ("Rebalance threshold is valid", 0 < config.GRID_REBALANCE_THRESHOLD <= 1.0),
