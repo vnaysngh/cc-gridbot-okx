@@ -4,6 +4,7 @@
 import time
 import signal
 import sys
+import os
 from datetime import datetime
 
 from rich.console import Console
@@ -17,7 +18,7 @@ from utils.exchange import (
     sync_grid_with_exchange
 )
 from utils.logger import setup_logger
-from utils.state_manager import save_grid_state, load_grid_state, save_dashboard_state
+from utils.state_manager import save_grid_state, load_grid_state, save_dashboard_state, clear_grid_state
 from strategies.dca import DCAStrategy
 from strategies.grid import GridStrategy
 
@@ -322,6 +323,10 @@ def main():
     )
 
     if config.BOT_MODE == "grid":
+        if os.environ.get("CLEAR_STATE", "False").lower() == "true":
+            console.print("[red]CLEAR_STATE=True found in environment! Wiping old saved grid state...[/red]")
+            clear_grid_state(config.EXCHANGE_ID, config.SYMBOL)
+
         # Try to load saved state first
         saved_state = load_grid_state(config.EXCHANGE_ID, config.SYMBOL)
 
