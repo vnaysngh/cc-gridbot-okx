@@ -45,7 +45,7 @@ POLL_INTERVAL_SECONDS = 60
 GRID_LOWER_RANGE_PCT = 4.5      # % below current price to place lowest grid buy
 GRID_UPPER_RANGE_PCT = 4.5      # % above current price to place highest grid sell
 GRID_NUM_LEVELS  = 10           # 10 levels = ~4 buys + ~4 sells
-GRID_ORDER_USDT  = 25.0         # $25 per order (~$100 each side)
+GRID_ORDER_USDT  = 50.0         # $50 per order (~$200 each side)
 GRID_SPACING_TYPE = "linear"    # "linear" or "geometric" (constant profit % per grid step)
 
 GRID_START_MODE = "full"        # "full" = place both buys AND sells at startup
